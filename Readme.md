@@ -132,7 +132,3 @@ Steps performed:
   python-docx
   requests
   ```
-
----
-
-Do you want me to also **add installation commands for ffmpeg** (needed for `yt-dlp` on some systems), or should I keep the README Python-only?
