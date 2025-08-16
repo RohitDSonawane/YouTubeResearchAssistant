@@ -1,0 +1,15 @@
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+
+
+# Logs
+logs/
+*.log
+
+# Results & intermediate files
+results/
+Article/
+*.json
