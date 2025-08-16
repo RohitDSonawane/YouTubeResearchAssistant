@@ -1,7 +1,3 @@
-Here's a clear and developer-friendly **README.md** for your project:
-
----
-
 # 📑 YouTube Research Assistant
 
 This project automates the workflow of **finding YouTube videos related to an article, extracting transcripts, and saving metadata** into structured JSON files.
