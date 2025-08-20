@@ -19,7 +19,6 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL_NAME = "openai/gpt-oss-20b:free"
 ARTICLE_FOLDER = "Article"
-# --- MODIFICATION: Set up logs directory and file paths ---
 LOGS_FOLDER = "logs"
 VIDEO_LOG_FILE = os.path.join(LOGS_FOLDER, "videos.log")
 SCRAPER_LOG_FILE = os.path.join(LOGS_FOLDER, "scraper.log") # Assuming this is used internally by scrapper.py
@@ -27,16 +26,6 @@ SCRAPER_LOG_FILE = os.path.join(LOGS_FOLDER, "scraper.log") # Assuming this is u
 
 # ──────────────── HELPERS ────────────────
 def parse_complex_transcript(transcript_data):
-    """
-    Parse complex JSON transcript format and extract simple English text.
-    
-    Follows the exact parsing logic:
-    1. Load JSON data
-    2. Access the events array
-    3. Iterate through each object in events
-    4. Extract utf8 text from segs array
-    5. Concatenate all text segments
-    """
     if isinstance(transcript_data, str):
         try:
             # Try to parse if it's a JSON string
@@ -178,32 +167,21 @@ def get_transcript(video_id):
 
 
 def log_video(url):
-    # --- MODIFICATION: Create logs folder if it doesn't exist ---
     os.makedirs(LOGS_FOLDER, exist_ok=True)
     with open(VIDEO_LOG_FILE, "a", encoding="utf-8") as f:
         f.write(url.strip() + "\n")
 
 
 def already_logged(url):
-    # --- MODIFICATION: Check in the correct log file location ---
     return os.path.exists(VIDEO_LOG_FILE) and url in open(VIDEO_LOG_FILE, "r", encoding="utf-8").read().splitlines()
 
-# --- MODIFICATION: Pass log file path to scraper.py, if needed. Assuming scrape_links handles its own log path. ---
-# For demonstration purposes, I'll update the main function to reflect the new log file path.
-# The user's provided scrapper.py is not visible, so this is a best-effort modification.
 def run_scraper_with_log():
-    # Example of how you would call the scraper with the new log path
-    # assuming scrape_links can take a log_file_path argument
-    # scrape_links(log_file_path=SCRAPER_LOG_FILE)
     scrape_links()
     pass
 
-
-# ──────────────── MAIN ────────────────
 if __name__ == "__main__":
     try:
         print("🕵 Running web scraper...")
-        # --- MODIFICATION: Call the function that handles logging for the scraper ---
         run_scraper_with_log()
 
         print("\n📂 Loading first article...")
