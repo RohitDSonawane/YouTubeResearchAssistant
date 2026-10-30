@@ -1,5 +1,6 @@
-# 📑 YouTube Research Assistant
+# YouTube Research Assistant
 
+> Status: archived. This was a learning project and is no longer maintained.
 This project automates the workflow of **finding YouTube videos related to an article, extracting transcripts, and saving metadata** into structured JSON files.
 
 It combines:
@@ -12,7 +13,7 @@ It combines:
 
 ---
 
-## 🚀 Features
+## Features
 
 * Load research articles (`.txt`, `.pdf`, `.docx`)
 * Extract a **smart keyword phrase** using OpenRouter GPT
@@ -30,7 +31,7 @@ It combines:
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 .
@@ -47,7 +48,7 @@ It combines:
 
 ---
 
-## ⚙️ Installation
+## Installation
 
 1. Clone repo and install dependencies:
 
@@ -67,7 +68,7 @@ It combines:
 
 ---
 
-## ▶️ Usage
+## ▶ Usage
 
 Run the main script:
 
@@ -85,7 +86,7 @@ Steps performed:
 
 ---
 
-## 📜 Example Output (`results/example.json`)
+## Example Output (`results/example.json`)
 
 ```json
 [
@@ -103,14 +104,14 @@ Steps performed:
 
 ---
 
-## 📝 Logs
+## Logs
 
 * `logs/videos.log` → Keeps track of already processed videos (avoids duplicates)
 * `logs/scraper.log` → Handled internally by `scrapper.py`
 
 ---
 
-## ⚠️ Notes
+## Notes
 
 * If no `OPENROUTER_API_KEY` is found, it defaults to `"latest research update"` as the query.
 * If no transcript is available, a placeholder message is saved.
@@ -118,7 +119,7 @@ Steps performed:
 
 ---
 
-## 📌 Requirements
+## Requirements
 
 * Python 3.8+
 * Libraries:

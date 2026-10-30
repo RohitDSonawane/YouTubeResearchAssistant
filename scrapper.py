@@ -33,7 +33,7 @@ def scrape_article(url):
         response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
         response.raise_for_status()
     except Exception as e:
-        print(f"❌ Failed to fetch {url}: {e}")
+        print(f"[ERROR] Failed to fetch {url}: {e}")
         return None, None
 
     soup = BeautifulSoup(response.text, "html.parser")
@@ -61,10 +61,10 @@ def scrape_links():
 
     for link in links:
         if already_scraped(link):
-            print(f"⏩ Skipping already scraped: {link}")
+            print(f"[SKIP] Skipping already scraped: {link}")
             continue
 
-        print(f"🔍 Scraping: {link}")
+        print(f"Scraping: {link}")
         title, content = scrape_article(link)
         if content:
             safe_title = clean_filename(title)
@@ -72,9 +72,9 @@ def scrape_links():
             with open(file_path, "w", encoding="utf-8") as out:
                 out.write(content)
             log_scraped(link)
-            print(f"✅ Saved: {file_path}")
+            print(f"[OK] Saved: {file_path}")
         else:
-            print(f"⚠ No content found for {link}")
+            print(f"[WARN] No content found for {link}")
 
 if __name__ == "__main__":
     scrape_links()

@@ -1,11 +1,10 @@
 import os, glob, re, json, requests
 import yt_dlp
 from deep_translator import GoogleTranslator
+from youtube_transcript_api import YouTubeTranscriptApi
 try:
-    from youtube_transcript_api import YouTubeTranscriptApi
     from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
 except ImportError:
-    from youtube_transcript_api import YouTubeTranscriptApi
     TranscriptsDisabled = Exception
     NoTranscriptFound = Exception
 from dotenv import load_dotenv
@@ -21,7 +20,6 @@ MODEL_NAME = "openai/gpt-oss-20b:free"
 ARTICLE_FOLDER = "Article"
 LOGS_FOLDER = "logs"
 VIDEO_LOG_FILE = os.path.join(LOGS_FOLDER, "videos.log")
-SCRAPER_LOG_FILE = os.path.join(LOGS_FOLDER, "scraper.log") # Assuming this is used internally by scrapper.py
 
 
 # ──────────────── HELPERS ────────────────
@@ -74,14 +72,14 @@ def load_article(file_path):
         elif ext == ".docx":
             return "\n".join([p.text for p in Document(file_path).paragraphs])
     except Exception as e:
-        print(f"❌ Error loading article {file_path}: {e}")
+        print(f"[ERROR] Error loading article {file_path}: {e}")
     return ""
 
 
 def extract_best_keyword_phrase(text):
     """Ask GPT (via OpenRouter) → best YouTube search phrase."""
     if not OPENROUTER_API_KEY:
-        print("⚠ No OPENROUTER_API_KEY found, using default query")
+        print("[WARN] No OPENROUTER_API_KEY found, using default query")
         return "latest research update"
     
     prompt = f"""
@@ -100,35 +98,35 @@ TEXT:
         phrase = r.json()["choices"][0]["message"]["content"].strip()
         return re.sub(r"\s+", " ", phrase)
     except Exception as e:
-        print(f"⚠ Keyword extraction failed: {e}")
+        print(f"[WARN] Keyword extraction failed: {e}")
         return "latest research update"
 
 
 def search_youtube(query, max_results=3):
-    print(f"\n🔍 Searching YouTube for: \033[96m{query}\033[0m")
+    print(f"\nSearching YouTube for: \033[96m{query}\033[0m")
     try:
         with yt_dlp.YoutubeDL({"quiet": True, "extract_flat": True, "skip_download": True}) as ydl:
             info = ydl.extract_info(f"ytsearch{max_results}:{query}", download=False)
             return info.get("entries", [])
     except Exception as e:
-        print(f"❌ YouTube search error: {e}")
+        print(f"[ERROR] YouTube search error: {e}")
         return []
 
 
 def get_transcript(video_id):
     """Transcript: API → yt_dlp fallback → translate if needed."""
-    print(f"📝 Getting transcript for video: {video_id}")
+    print(f"Getting transcript for video: {video_id}")
     
     try:
         transcript = YouTubeTranscriptApi.get_transcript(video_id)
-        print(f"✅ Got transcript via API for {video_id}")
+        print(f"[OK] Got transcript via API for {video_id}")
         return transcript
     except (TranscriptsDisabled, NoTranscriptFound):
-        print(f"⚠ No transcript via API for {video_id}")
+        print(f"[WARN] No transcript via API for {video_id}")
     except Exception as e:
-        print(f"⚠ API error for transcript {video_id}: {e}")
+        print(f"[WARN] API error for transcript {video_id}: {e}")
 
-    print("🔄 Trying yt_dlp subtitles...")
+    print("Trying yt_dlp subtitles...")
     try:
         opts = {"quiet": True, "skip_download": True, "writesubtitles": True,
                 "writeautomaticsub": True, "subtitleslangs": ["en", "en-US", "en-GB"]}
@@ -136,12 +134,12 @@ def get_transcript(video_id):
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
             subs = info.get("subtitles") or info.get("automatic_captions")
             if not subs: 
-                print(f"❌ No subtitles found for {video_id}")
+                print(f"[WARN] No subtitles found for {video_id}")
                 return [{"text": "Transcript not available", "start": 0, "duration": 0}]
 
             for lang in ["en", "en-US", "en-GB"]:
                 if lang in subs:
-                    print(f"✅ Found English subtitles ({lang}) for {video_id}")
+                    print(f"[OK] Found English subtitles ({lang}) for {video_id}")
                     srt = requests.get(subs[lang][0]["url"]).text
                     
                     if srt.strip().startswith('{'):
@@ -155,14 +153,14 @@ def get_transcript(video_id):
                             for l in srt.split("\n") if l and not l.strip().isdigit() and "-->" not in l]
 
             first_lang = next(iter(subs))
-            print(f"🌍 Found {first_lang} subtitles, translating to English...")
+            print(f"Found {first_lang} subtitles, translating to English...")
             srt = requests.get(subs[first_lang][0]["url"]).text
             raw = "\n".join([l for l in srt.split("\n") if l and not l.strip().isdigit() and "-->" not in l])
             translated = GoogleTranslator(source="auto", target="en").translate(raw)
             return [{"text": t, "start": 0, "duration": 0} for t in translated.split("\n")]
 
     except Exception as e2:
-        print(f"❌ yt_dlp fallback failed: {e2}")
+        print(f"[ERROR] yt_dlp fallback failed: {e2}")
         return [{"text": f"Transcript fetch failed: {e2}", "start": 0, "duration": 0}]
 
 
@@ -173,39 +171,38 @@ def log_video(url):
 
 
 def already_logged(url):
-    return os.path.exists(VIDEO_LOG_FILE) and url in open(VIDEO_LOG_FILE, "r", encoding="utf-8").read().splitlines()
-
-def run_scraper_with_log():
-    scrape_links()
-    pass
+    if not os.path.exists(VIDEO_LOG_FILE):
+        return False
+    with open(VIDEO_LOG_FILE, "r", encoding="utf-8") as f:
+        return url.strip() in [line.strip() for line in f]
 
 if __name__ == "__main__":
     try:
-        print("🕵 Running web scraper...")
-        run_scraper_with_log()
+        print("Running web scraper...")
+        scrape_links()
 
-        print("\n📂 Loading first article...")
+        print("\nLoading first article...")
         files = glob.glob(f"{ARTICLE_FOLDER}/*")
         if not files: raise FileNotFoundError("No files in Article/")
         article_text = load_article(files[0])
 
-        print("\n🔍 Extracting best keyword phrase...")
+        print("\nExtracting best keyword phrase...")
         query = extract_best_keyword_phrase(article_text)
-        print(f"✅ Using query: \033[92m{query}\033[0m")
+        print(f"[OK] Using query: \033[92m{query}\033[0m")
 
         results = search_youtube(query, max_results=3)
 
-        print("\n🎬 Top Videos:")
+        print("\nTop Videos:")
         videos = []
         for v in results:
             vid, title = v.get("id"), v.get("title", "Untitled")
             url = f"https://www.youtube.com/watch?v={vid}"
 
             if already_logged(url):
-                print(f"⏩ Skipping logged: {title}")
+                print(f"[SKIP] Skipping logged: {title}")
                 continue
 
-            print(f"   ▶ \033[93m{title}\033[0m ({url})")
+            print(f"  > \033[93m{title}\033[0m ({url})")
             transcript = get_transcript(vid)
 
             # Parse and clean transcript
@@ -233,10 +230,10 @@ if __name__ == "__main__":
         with open(out_file, "w", encoding="utf-8") as f:
             json.dump(videos, f, ensure_ascii=False, indent=2)
 
-        print(f"\n✅ Results saved to \033[96m{out_file}\033[0m")
+        print(f"\n[OK] Results saved to \033[96m{out_file}\033[0m")
 
 
     except Exception as e:
-        print(f"💥 Error: {e}")
+        print(f"[ERROR] {e}")
         import traceback
         traceback.print_exc()
